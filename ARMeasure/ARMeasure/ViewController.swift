@@ -14,6 +14,10 @@ class ViewController: UIViewController, ARSCNViewDelegate {
 
     @IBOutlet var sceneView: ARSCNView!
     
+    @IBOutlet weak var resultLabel: UILabel!
+    @IBOutlet weak var notReadyLabel: UILabel!
+    @IBOutlet weak var AimLabel: UILabel!
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         
