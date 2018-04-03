@@ -10,13 +10,18 @@ import UIKit
 import SceneKit
 import ARKit
 
-class ViewController: UIViewController, ARSCNViewDelegate {
+class ViewController: UIViewController {
 
     @IBOutlet var sceneView: ARSCNView!
     
     @IBOutlet weak var resultLabel: UILabel!
     @IBOutlet weak var notReadyLabel: UILabel!
-    @IBOutlet weak var AimLabel: UILabel!
+    @IBOutlet weak var aimLabel: UILabel!
+    
+    let vectorZero = SCNVector3()
+    var measuring = false
+    var startValue = SCNVector3()
+    var endValue = SCNVector3()
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -26,12 +31,9 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         
         // Show statistics such as fps and timing information
         sceneView.showsStatistics = true
-        
-        // Create a new scene
-        let scene = SCNScene(named: "art.scnassets/ship.scn")!
-        
-        // Set the scene to the view
-        sceneView.scene = scene
+        sceneView.debugOptions = [ARSCNDebugOptions.showFeaturePoints]
+
+        resetValue()
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -55,18 +57,62 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         super.didReceiveMemoryWarning()
         // Release any cached data, images, etc that aren't in use.
     }
-
-    // MARK: - ARSCNViewDelegate
     
-/*
-    // Override to create and configure nodes for anchors added to the view's session.
-    func renderer(_ renderer: SCNSceneRenderer, nodeFor anchor: ARAnchor) -> SCNNode? {
-        let node = SCNNode()
-     
-        return node
+    // MARK: - initial method
+    func updateResultLabel(_ value: Float) {
+        let cm = value * 100.0
+        let inch = cm * 0.3937007874
+        resultLabel.text = String(format: "%.2f cm / %.2f \"", cm, inch)
     }
-*/
     
+    func resetValue() {
+        measuring = false
+        startValue = SCNVector3Zero
+        endValue = SCNVector3Zero
+        
+        updateResultLabel(0.0)
+    }
+    
+    func detectObjects() {
+        if let worlsPos = sceneView.realWorldVector(screenPostion: sceneView.center) {
+            notReadyLabel.isHidden = true
+            aimLabel.isHidden = false
+            if measuring {
+                if startValue == SCNVector3Zero {
+                    startValue = worlsPos
+                }
+                endValue = worlsPos
+                updateResultLabel(startValue.distance(from: endValue))
+            }
+        }
+    }
+    
+}
+
+extension ViewController {
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        // 重置
+        resetValue()
+        measuring = true
+    }
+    
+    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+        measuring = false
+    }
+}
+
+// MARK: - ARSCNViewDelegate
+
+extension ViewController: ARSCNViewDelegate {
+    func renderer(_ renderer: SCNSceneRenderer, updateAtTime time: TimeInterval) {
+        DispatchQueue.main.async {
+            self.detectObjects()
+        }
+        
+    }
+}
+
+extension ViewController: ARSessionObserver {
     func session(_ session: ARSession, didFailWithError error: Error) {
         // Present an error message to the user
         
